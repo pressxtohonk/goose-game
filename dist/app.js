@@ -42,13 +42,23 @@ const min = reduce(Math.min);
 const max = reduce(Math.max);
 function main() {
     const assets = {
+        grass: new Image(),
         goose: new Image(),
         gooseL: new Image(),
         gooseR: new Image(),
     };
+    assets.grass.src = "./assets/grass.png";
     assets.goose.src = "./assets/goose-R.png";
     assets.gooseL.src = "./assets/goose-sheet-L.png";
     assets.gooseR.src = "./assets/goose-sheet-R.png";
+    const grass = {
+        name: "grass",
+        sprite: {
+            sheet: assets.grass,
+            width: 16,
+            height: 16,
+        }
+    };
     const goose = {
         name: "goose",
         sprite: {
@@ -69,7 +79,7 @@ function main() {
         Direction["R"] = "R";
     })(Direction || (Direction = {}));
     const inputs = new Set();
-    const buffer = new OffscreenCanvas(256, 256);
+    const buffer = new OffscreenCanvas(128, 128);
     const source = buffer.getContext("2d");
     const canvas = document.getElementById("canvas");
     const target = canvas.getContext("2d");
@@ -119,17 +129,32 @@ function main() {
         const d = sum(goose.pos, prod(half, sum(goose.v, v), t));
         goose.v = min(max(v, vec(-200, -200, -200)), vec(200, 200, 200));
         goose.pos = min(max(d, vec(0, 0, 0)), vec(buffer.width - goose.sprite.width, buffer.height - goose.sprite.height, 0));
-        // Project to isometric coordinates
-        const x = Math.trunc(goose.pos.x / 2 - goose.pos.y / 2 + buffer.width / 2 - goose.sprite.width / 2);
-        const y = Math.trunc(goose.pos.x / 4 + goose.pos.y / 4 + buffer.height / 4 - goose.sprite.height / 2);
-        // Calculate animation frame offset
-        const f = 3 * goose.sprite.numFrames / 1000; // frames/ms
-        const i = inputs.size == 0
-            ? 0
-            : Math.trunc(time * f) % goose.sprite.numFrames * goose.sprite.width;
+        // Prepare for render
+        function renderGrass(i, j) {
+            // Project to isometric coordinates
+            const x = Math.trunc(i / 2 - j / 2 + buffer.width / 2 - grass.sprite.width / 2);
+            const y = Math.trunc(i / 4 + j / 4 + buffer.height / 4);
+            source.drawImage(grass.sprite.sheet, 0, 0, grass.sprite.width, grass.sprite.height, x, y, grass.sprite.width, grass.sprite.height);
+        }
+        function renderGoose() {
+            // Project to isometric coordinates
+            const x = Math.trunc(goose.pos.x / 2 - goose.pos.y / 2 + buffer.width / 2 - goose.sprite.width / 2);
+            const y = Math.trunc(goose.pos.x / 4 + goose.pos.y / 4 + buffer.height / 4 - goose.sprite.height / 2);
+            // Calculate animation frame offset
+            const f = 3 * goose.sprite.numFrames / 1000; // frames/ms
+            const i = inputs.size == 0
+                ? 0
+                : Math.trunc(time * f) % goose.sprite.numFrames * goose.sprite.width;
+            source.drawImage(goose.sprite.sheet, i, 0, goose.sprite.width, goose.sprite.height, x, y, goose.sprite.width, goose.sprite.height);
+        }
         // Render to low-res buffer
         source.clearRect(0, 0, buffer.width, buffer.height);
-        source.drawImage(goose.sprite.sheet, i, 0, goose.sprite.width, goose.sprite.height, x, y, goose.sprite.width, goose.sprite.height);
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8; j++) {
+                renderGrass(i * grass.sprite.width, j * grass.sprite.height);
+            }
+        }
+        renderGoose();
         // Copy buffer to screen
         target.clearRect(0, 0, canvas.width, canvas.height);
         target.drawImage(buffer, 0, 0, buffer.width, buffer.height, 0, 0, canvas.width, canvas.height);
