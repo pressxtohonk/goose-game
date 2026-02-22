@@ -7,10 +7,17 @@
 
   outputs = { nixpkgs, openspec, ... }: {
     devShells = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in
       {
-        default = nixpkgs.legacyPackages.${system}.mkShell {
+        default = pkgs.mkShell {
           packages = [
             openspec.packages.${system}.default
+            pkgs.nodejs_22
+            pkgs.http-server
+            pkgs.typescript
+            pkgs.just
           ];
         };
       }
