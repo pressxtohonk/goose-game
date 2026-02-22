@@ -49,7 +49,7 @@
 
 ## 8. Testing & Polish
 
-- [ ] 8.1 Test all movement directions
-- [ ] 8.2 Test boundary collision
-- [ ] 8.3 Verify animation plays correctly
-- [ ] 8.4 Test sprite flipping for left direction
+- [x] 8.1 Test all movement directions
+- [x] 8.2 Test boundary collision
+- [x] 8.3 Verify animation plays correctly
+- [x] 8.4 Test sprite flipping for left direction
