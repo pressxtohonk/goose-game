@@ -1,0 +1,16 @@
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  };
+
+  outputs = { nixpkgs, ... }: {
+    devShells = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed (system:
+      {
+        default = nixpkgs.legacyPackages.${system}.mkShell {
+          packages = [
+          ];
+        };
+      }
+    );
+  };
+}
