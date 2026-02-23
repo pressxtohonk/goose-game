@@ -20,6 +20,16 @@ export interface Bounds {
   maxY: number
 }
 
+export interface GooseState {
+  x: number
+  y: number
+  direction: Direction
+  moving: boolean
+  frame: number
+  animTimer: number
+  bobOffset: number
+}
+
 export function isoToScreen(x: number, y: number, canvasWidth: number, canvasHeight: number): { x: number; y: number } {
   const centerX = canvasWidth / 2
   const centerY = canvasHeight / 2
@@ -106,4 +116,36 @@ export function updateAnimation(state: AnimationState, isMoving: boolean): Anima
   }
 
   return { frame: newFrame, animTimer: newTimer, moving: true }
+}
+
+export function updateGooseState(state: GooseState, keys: Set<string>, bounds: Bounds): GooseState {
+  const hasMovement = Array.from(keys).some(k => keyDirections[k])
+
+  if (!hasMovement) {
+    return {
+      x: state.x,
+      y: state.y,
+      direction: state.direction,
+      moving: false,
+      frame: 0,
+      animTimer: 0,
+      bobOffset: state.bobOffset
+    }
+  }
+
+  const movement = calculateMovement(keys, state.x, state.y, SPEED, bounds)
+  const animState = updateAnimation(
+    { frame: state.frame, animTimer: state.animTimer, moving: state.moving },
+    true
+  )
+
+  return {
+    x: movement.x,
+    y: movement.y,
+    direction: movement.direction,
+    moving: animState.moving,
+    frame: animState.frame,
+    animTimer: animState.animTimer,
+    bobOffset: state.bobOffset + BOB_SPEED
+  }
 }

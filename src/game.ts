@@ -2,15 +2,13 @@ import {
   TILE_WIDTH,
   TILE_HEIGHT,
   BOUNDS,
-  SPEED,
   FRAME_COUNT,
-  BOB_SPEED,
   BOB_AMPLITUDE,
   isoToScreen,
-  calculateMovement,
-  updateAnimation,
+  updateGooseState,
   keyDirections
 } from './gameLogic.js'
+import type { GooseState } from './gameLogic.js'
 
 const canvas = document.getElementById('game') as HTMLCanvasElement
 const ctx = canvas.getContext('2d')!
@@ -31,16 +29,6 @@ grassTile.src = 'assets/grass.png'
 
 const gooseSheet = new Image()
 gooseSheet.src = 'assets/goose-sheet-R.png'
-
-interface GooseState {
-  x: number
-  y: number
-  direction: 'left' | 'right'
-  moving: boolean
-  frame: number
-  animTimer: number
-  bobOffset: number
-}
 
 const goose: GooseState = {
   x: 0,
@@ -94,27 +82,14 @@ function drawGoose(): void {
 }
 
 function update(): void {
-  const hasMovement = Array.from(keys).some(k => keyDirections[k])
-
-  if (hasMovement) {
-    const result = calculateMovement(keys, goose.x, goose.y, SPEED, BOUNDS)
-    goose.x = result.x
-    goose.y = result.y
-    goose.direction = result.direction
-
-    const animState = updateAnimation(
-      { frame: goose.frame, animTimer: goose.animTimer, moving: goose.moving },
-      true
-    )
-    goose.frame = animState.frame
-    goose.animTimer = animState.animTimer
-    goose.moving = animState.moving
-    goose.bobOffset += BOB_SPEED
-  } else {
-    goose.moving = false
-    goose.frame = 0
-    goose.animTimer = 0
-  }
+  const newState = updateGooseState(goose, keys, BOUNDS)
+  goose.x = newState.x
+  goose.y = newState.y
+  goose.direction = newState.direction
+  goose.moving = newState.moving
+  goose.frame = newState.frame
+  goose.animTimer = newState.animTimer
+  goose.bobOffset = newState.bobOffset
 }
 
 function gameLoop(): void {
