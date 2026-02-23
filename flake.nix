@@ -18,6 +18,7 @@
             pkgs.http-server
             pkgs.typescript
             pkgs.just
+            pkgs.tsx
           ];
         };
       }

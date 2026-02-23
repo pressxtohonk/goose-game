@@ -12,3 +12,11 @@ start:
 
 # Build and start
 dev: build start
+
+# Run all tests
+test:
+    find src -name '*.test.ts' -exec tsx {} \;
+
+# Run a single test file
+test-file file:
+    tsx {{file}}

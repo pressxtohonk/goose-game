@@ -142,18 +142,20 @@ This project uses Nix flakes for dependency management. Never use npm, yarn, or 
 
 Run `nix develop` or use direnv with `.envrc` to enter the development environment.
 
-Available tools: Node.js 22, TypeScript compiler, http-server, just
+Available tools: Node.js 22, TypeScript compiler, http-server, just, tsx
 
 ## Testing Strategy
 
 Per `openspec/changes/improve-testing/design.md`:
 
-1. **Framework**: Vitest (fast, TypeScript-native, Jest-compatible)
+1. **Framework**: tsx with Node's built-in assert module (Nix-compatible, no npm needed)
 2. **Approach**: Extract pure functions from DOM-dependent code
 3. **Focus**: Test requirements from specs, not implementation details
 
-Functions to extract for testing:
+Test files: `src/**/*.test.ts` - run with `just test`
+
+Functions extracted for testing:
 - `isoToScreen(x, y, canvasWidth, canvasHeight)` - isometric conversion
 - `clampToBounds(x, y, bounds)` - boundary enforcement
 - `calculateMovement(keys, currentPos, speed, bounds)` - movement logic
-- `updateAnimation(state, deltaTime)` - animation frame logic
+- `updateAnimation(state, isMoving)` - animation frame logic

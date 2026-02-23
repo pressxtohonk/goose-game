@@ -1,51 +1,45 @@
-const canvas = document.getElementById('game') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d')!;
+import {
+  TILE_WIDTH,
+  TILE_HEIGHT,
+  BOUNDS,
+  SPEED,
+  FRAME_COUNT,
+  BOB_SPEED,
+  BOB_AMPLITUDE,
+  isoToScreen,
+  calculateMovement,
+  updateAnimation,
+  keyDirections
+} from './gameLogic.js'
 
-const TILE_WIDTH = 16;
-const TILE_HEIGHT = 8;
+const canvas = document.getElementById('game') as HTMLCanvasElement
+const ctx = canvas.getContext('2d')!
 
 function resizeCanvas(): void {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
 }
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+resizeCanvas()
+window.addEventListener('resize', resizeCanvas)
 
-const WORLD_SIZE = 10;
-const BOUNDS = {
-  minX: -WORLD_SIZE,
-  maxX: WORLD_SIZE,
-  minY: -WORLD_SIZE,
-  maxY: WORLD_SIZE
-};
-
-function isoToScreen(x: number, y: number): { x: number; y: number } {
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  return {
-    x: (x - y) * (TILE_WIDTH / 2) + centerX,
-    y: (x + y) * (TILE_HEIGHT / 2) + centerY
-  };
+function screenFromWorld(x: number, y: number): { x: number; y: number } {
+  return isoToScreen(x, y, canvas.width, canvas.height)
 }
 
-function getVisibleBounds(): { minX: number; maxX: number; minY: number; maxY: number } {
-  return { ...BOUNDS };
-}
+const grassTile = new Image()
+grassTile.src = 'assets/grass.png'
 
-const grassTile = new Image();
-grassTile.src = 'assets/grass.png';
-
-const gooseSheet = new Image();
-gooseSheet.src = 'assets/goose-sheet-R.png';
+const gooseSheet = new Image()
+gooseSheet.src = 'assets/goose-sheet-R.png'
 
 interface GooseState {
-  x: number;
-  y: number;
-  direction: 'left' | 'right';
-  moving: boolean;
-  frame: number;
-  animTimer: number;
-  bobOffset: number;
+  x: number
+  y: number
+  direction: 'left' | 'right'
+  moving: boolean
+  frame: number
+  animTimer: number
+  bobOffset: number
 }
 
 const goose: GooseState = {
@@ -56,129 +50,89 @@ const goose: GooseState = {
   frame: 0,
   animTimer: 0,
   bobOffset: 0
-};
+}
 
-const keys: Set<string> = new Set();
-
-const keyDirections: Record<string, { dx: number; dy: number }> = {
-  w: { dx: 0, dy: -1 },
-  a: { dx: -1, dy: 0 },
-  s: { dx: 0, dy: 1 },
-  d: { dx: 1, dy: 0 },
-  ArrowUp: { dx: 0, dy: -1 },
-  ArrowLeft: { dx: -1, dy: 0 },
-  ArrowDown: { dx: 0, dy: 1 },
-  ArrowRight: { dx: 1, dy: 0 }
-};
-
-const SPEED = 0.08;
-const FRAME_COUNT = 8;
-const ANIM_SPEED = 8;
-const BOB_SPEED = 0.3;
-const BOB_AMPLITUDE = 3;
+const keys: Set<string> = new Set()
 
 function drawGrassTile(isoX: number, isoY: number): void {
-  const screen = isoToScreen(isoX, isoY);
+  const screen = screenFromWorld(isoX, isoY)
   ctx.drawImage(
     grassTile,
     screen.x - TILE_WIDTH / 2,
     screen.y - TILE_HEIGHT,
     TILE_WIDTH,
     TILE_HEIGHT * 2
-  );
+  )
 }
 
 function render(): void {
-  ctx.fillStyle = '#3a5a40';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#3a5a40'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-  const bounds = getVisibleBounds();
-
-  for (let y = bounds.minY; y <= bounds.maxY; y++) {
-    for (let x = bounds.minX; x <= bounds.maxX; x++) {
-      drawGrassTile(x, y);
+  for (let y = BOUNDS.minY; y <= BOUNDS.maxY; y++) {
+    for (let x = BOUNDS.minX; x <= BOUNDS.maxX; x++) {
+      drawGrassTile(x, y)
     }
   }
 
-  drawGoose();
+  drawGoose()
 }
 
 function drawGoose(): void {
-  const screen = isoToScreen(goose.x, goose.y);
-  const bobY = goose.moving ? Math.sin(goose.bobOffset) * BOB_AMPLITUDE : 0;
-  const drawY = screen.y + bobY;
+  const screen = screenFromWorld(goose.x, goose.y)
+  const bobY = goose.moving ? Math.sin(goose.bobOffset) * BOB_AMPLITUDE : 0
+  const drawY = screen.y + bobY
 
-  const frameWidth = gooseSheet.width / FRAME_COUNT;
-  const frameX = goose.frame * frameWidth;
+  const frameWidth = gooseSheet.width / FRAME_COUNT
+  const frameX = goose.frame * frameWidth
 
-  ctx.save();
-  ctx.translate(screen.x, drawY);
-  ctx.scale(goose.direction === 'left' ? -1 : 1, 1);
-  ctx.drawImage(gooseSheet, frameX, 0, frameWidth, gooseSheet.height, -frameWidth / 2, -gooseSheet.height, frameWidth, gooseSheet.height);
-  ctx.restore();
+  ctx.save()
+  ctx.translate(screen.x, drawY)
+  ctx.scale(goose.direction === 'left' ? -1 : 1, 1)
+  ctx.drawImage(gooseSheet, frameX, 0, frameWidth, gooseSheet.height, -frameWidth / 2, -gooseSheet.height, frameWidth, gooseSheet.height)
+  ctx.restore()
 }
 
 function update(): void {
-  let dx = 0;
-  let dy = 0;
+  const hasMovement = Array.from(keys).some(k => keyDirections[k])
 
-  for (const key of keys) {
-    const dir = keyDirections[key];
-    if (dir) {
-      dx += dir.dx;
-      dy += dir.dy;
-    }
-  }
+  if (hasMovement) {
+    const result = calculateMovement(keys, goose.x, goose.y, SPEED, BOUNDS)
+    goose.x = result.x
+    goose.y = result.y
+    goose.direction = result.direction
 
-  if (dx !== 0 || dy !== 0) {
-    goose.moving = true;
-    if (keys.has('a') || keys.has('s') || keys.has('ArrowLeft') || keys.has('ArrowDown')) goose.direction = 'left';
-    if (keys.has('d') || keys.has('w') || keys.has('ArrowRight') || keys.has('ArrowUp')) goose.direction = 'right';
-
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    const nx = (dx / len) * SPEED;
-    const ny = (dy / len) * SPEED;
-
-    let newX = goose.x + nx;
-    let newY = goose.y + ny;
-
-    if (newX < BOUNDS.minX) newX = BOUNDS.minX;
-    if (newX > BOUNDS.maxX) newX = BOUNDS.maxX;
-    if (newY < BOUNDS.minY) newY = BOUNDS.minY;
-    if (newY > BOUNDS.maxY) newY = BOUNDS.maxY;
-
-    goose.x = newX;
-    goose.y = newY;
-
-    goose.bobOffset += BOB_SPEED;
-
-    goose.animTimer++;
-    if (goose.animTimer >= ANIM_SPEED) {
-      goose.animTimer = 0;
-      goose.frame = (goose.frame + 1) % FRAME_COUNT;
-    }
+    const animState = updateAnimation(
+      { frame: goose.frame, animTimer: goose.animTimer, moving: goose.moving },
+      true
+    )
+    goose.frame = animState.frame
+    goose.animTimer = animState.animTimer
+    goose.moving = animState.moving
+    goose.bobOffset += BOB_SPEED
   } else {
-    goose.moving = false;
-    goose.frame = 0;
+    goose.moving = false
+    goose.frame = 0
+    goose.animTimer = 0
   }
 }
 
 function gameLoop(): void {
-  update();
-  render();
-  requestAnimationFrame(gameLoop);
+  update()
+  render()
+  requestAnimationFrame(gameLoop)
 }
 
 window.addEventListener('keydown', (e) => {
-  keys.add(e.key);
+  keys.add(e.key)
   if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-    e.preventDefault();
+    e.preventDefault()
   }
-});
+})
 
 window.addEventListener('keyup', (e) => {
-  keys.delete(e.key);
-});
+  keys.delete(e.key)
+})
 
 function setupTouchControls(): void {
   const btnMap: Record<string, string> = {
@@ -186,32 +140,32 @@ function setupTouchControls(): void {
     'left': 'a',
     'down': 's',
     'right': 'd'
-  };
-  
+  }
+
   for (const [id, key] of Object.entries(btnMap)) {
-    const btn = document.getElementById(id)!;
-    
+    const btn = document.getElementById(id)!
+
     const start = (e: Event) => {
-      e.preventDefault();
-      keys.add(key);
-    };
+      e.preventDefault()
+      keys.add(key)
+    }
     const end = (e: Event) => {
-      e.preventDefault();
-      keys.delete(key);
-    };
-    
-    btn.addEventListener('touchstart', start, { passive: false });
-    btn.addEventListener('touchend', end, { passive: false });
-    btn.addEventListener('mousedown', start);
-    btn.addEventListener('mouseup', end);
-    btn.addEventListener('mouseleave', end);
+      e.preventDefault()
+      keys.delete(key)
+    }
+
+    btn.addEventListener('touchstart', start, { passive: false })
+    btn.addEventListener('touchend', end, { passive: false })
+    btn.addEventListener('mousedown', start)
+    btn.addEventListener('mouseup', end)
+    btn.addEventListener('mouseleave', end)
   }
 }
 
-setupTouchControls();
+setupTouchControls()
 
 grassTile.onload = () => {
   gooseSheet.onload = () => {
-    gameLoop();
-  };
-};
+    gameLoop()
+  }
+}
